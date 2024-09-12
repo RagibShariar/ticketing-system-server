@@ -13,6 +13,7 @@ app.use(
       "http://localhost:5173",
       "https://authpostgresqlfrontend.labontest.tech",
     ],
+    credentials: true,
   })
 );
 app.use(express.json());
