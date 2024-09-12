@@ -10,8 +10,8 @@ const app: Application = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
       "https://authpostgresqlfrontend.labontest.tech",
+      "http://localhost:5173",
     ],
     credentials: true,
   })
