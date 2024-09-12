@@ -18,8 +18,8 @@ model User {
   email           String           @unique
   name            String
   password        String
-  phone           String
-  address         String
+  phone           String?
+  address         String?
   avatar          String?
   role            UserRole
   // need_password_Change     Boolean
