@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { config } from "../config";
+import { USER_ROLE } from "../middlewares/auth";
 import apiError from "../utils/apiError";
 import apiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
@@ -154,6 +155,29 @@ const viewAllServiceRequest = asyncHandler(
 const markServiceRequestAsFulfilled = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
+
+    const token = req.headers.authorization?.split(" ")[1] as string;
+
+    if (!token) {
+      throw new apiError(httpStatus.UNAUTHORIZED, `Unauthorized Access`);
+    }
+
+    // Verify token and get user information
+    const decoded = jwt.verify(
+      token,
+      config.jwt_access_secret as string
+    ) as JwtPayload;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: decoded.email,
+      },
+    });
+
+    if (!user || user.role !== USER_ROLE.admin) {
+      throw new apiError(httpStatus.UNAUTHORIZED, `Unauthorized Access`);
+    }
+
     const serviceRequest = await prisma.serviceRequest.update({
       where: {
         id: Number(id),
@@ -175,4 +199,5 @@ export const serviceRequest = {
   createServiceRequest,
   viewServiceRequest,
   viewAllServiceRequest,
+  markServiceRequestAsFulfilled,
 };

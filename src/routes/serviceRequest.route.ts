@@ -22,4 +22,10 @@ serviceRequestRouter.get(
   serviceRequest.viewAllServiceRequest
 );
 
+serviceRequestRouter.patch(
+  "/change-status",
+  auth(USER_ROLE.admin),
+  serviceRequest.markServiceRequestAsFulfilled
+);
+
 export default serviceRequestRouter;
