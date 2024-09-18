@@ -14,6 +14,7 @@ const _config = {
   smtp_port: process.env.SMTP_PORT,
   smtp_mail: process.env.SMTP_MAIL,
   smtp_password: process.env.SMTP_PASSWORD,
+  support_email: process.env.SUPPORT_EMAIL,
 };
 
 export const config = Object.freeze(_config);
