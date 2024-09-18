@@ -1,6 +1,9 @@
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('super_admin', 'admin', 'user');
 
+-- CreateEnum
+CREATE TYPE "RequestStatus" AS ENUM ('pending', 'fulfilled', 'cancelled');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -30,24 +33,26 @@ CREATE TABLE "otp_verifications" (
 );
 
 -- CreateTable
-CREATE TABLE "ServiceRequest" (
+CREATE TABLE "service_requests" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
     "message" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "status" "RequestStatus" NOT NULL DEFAULT 'pending',
     "requestTypeId" INTEGER NOT NULL,
+    "userId" TEXT NOT NULL,
 
-    CONSTRAINT "ServiceRequest_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "service_requests_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "RequestType" (
+CREATE TABLE "request_types" (
     "id" SERIAL NOT NULL,
     "type" TEXT NOT NULL,
 
-    CONSTRAINT "RequestType_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "request_types_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -57,10 +62,13 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE UNIQUE INDEX "otp_verifications_userId_key" ON "otp_verifications"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "RequestType_type_key" ON "RequestType"("type");
+CREATE UNIQUE INDEX "request_types_type_key" ON "request_types"("type");
 
 -- AddForeignKey
 ALTER TABLE "otp_verifications" ADD CONSTRAINT "otp_verifications_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ServiceRequest" ADD CONSTRAINT "ServiceRequest_requestTypeId_fkey" FOREIGN KEY ("requestTypeId") REFERENCES "RequestType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "service_requests" ADD CONSTRAINT "service_requests_requestTypeId_fkey" FOREIGN KEY ("requestTypeId") REFERENCES "request_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "service_requests" ADD CONSTRAINT "service_requests_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
