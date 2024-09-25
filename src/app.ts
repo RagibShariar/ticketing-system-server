@@ -4,6 +4,7 @@ import express, { Application } from "express";
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import authRouter from "./routes/auth.route";
 import serviceRequestRouter from "./routes/serviceRequest.route";
+import userRouter from "./routes/user.route";
 import "./utils/deleteExpiredOTPs";
 
 const app: Application = express();
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
 app.use("/api/service-request", serviceRequestRouter);
 
 app.use(globalErrorHandler);

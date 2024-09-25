@@ -141,7 +141,37 @@ const viewServiceRequest = asyncHandler(async (req: Request, res: Response) => {
 // View all services request by admin
 const viewAllServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
-    const serviceRequest = await prisma.serviceRequest.findMany();
+    const { email, id, days } = req.query;
+
+    // Create a filtering object based on the query params
+    const filters: any = {};
+
+    if (email) {
+      filters.email = email as string;
+    }
+
+    if (id) {
+      filters.id = parseInt(id as string, 10);
+    }
+
+    // If 'days' is provided, filter records based on the number of days ago
+    if (days) {
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - parseInt(days as string, 10));
+
+      filters.createdAt = {
+        gte: daysAgo, // greater than or equal to 'days' ago
+      };
+    }
+
+    const serviceRequest = await prisma.serviceRequest.findMany({
+      where: filters,
+      include: {
+        requestType: true, // Populate the related RequestType
+        user: true, // Populate the related User
+      },
+    });
+
     apiResponse(
       res,
       httpStatus.OK,

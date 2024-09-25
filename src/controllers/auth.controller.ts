@@ -1,5 +1,6 @@
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 import jwt from "jsonwebtoken";
@@ -30,6 +31,8 @@ const userSignUp = asyncHandler(async (req: Request, res: Response) => {
     name: req.body.name,
     phone: req.body.phone,
     address: req.body.address,
+    companyName: req.body.companyName,
+    designation: req.body.designation,
   };
   // console.log(userData);
   const result = await prisma.user.create({
@@ -206,8 +209,125 @@ const verifyLoginOtp = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+//** forgot password **/
+const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  // check if user exist
+  const user = await prisma.user.findFirst({
+    where: {
+      email: email,
+    },
+  });
+  if (!user) {
+    throw new apiError(httpStatus.NOT_FOUND, "Email not registered");
+  }
+
+  // Generate random token and set expiration time (e.g., 10 minutes)
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  // hash the token
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Set expiration to 10 minutes from now
+
+  // reset url
+  const resetUrl = `${config.client_url}/reset-password/${hashedToken}`;
+
+  //  save the token in the database and send it to the user's email
+  await prisma.oTPVerification.upsert({
+    where: { userId: user.id },
+    create: {
+      otp: hashedToken,
+      expiresAt: expiresAt,
+      userId: user.id,
+    },
+    update: {
+      otp: hashedToken,
+      expiresAt: expiresAt,
+    },
+  }),
+    sendEmail({
+      to: user.email,
+      subject: "Password Reset Request",
+      html: `
+        <html lang="en" >
+    <head>
+      <meta charset="UTF-8">
+    </head>
+    <body>
+    <div style="font-family: Helvetica,Arial,sans-serif;overflow:auto;line-height:2">
+      <div style="margin:30px auto;width:90%;padding:20px 0">
+        <div style="border-bottom:1px solid #eee">
+        </div>
+        <p style="font-size:1.1em">Hi, ${user.name}</p>
+        <p>
+        <p>We have received a password reset request. Please use the below link to reset your password.</p>
+        <a href=${resetUrl} target="_blank">Reset Password</a>
+        </p>
+          <p>This reset password link will be valid only for 10 minutes. </p>
+        
+        <hr style="border:none;border-top:1px solid #eee" />
+      </div>
+    </body>
+    </html>
+        `,
+    }),
+    res.status(httpStatus.OK).json({
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Password reset link sent to email.",
+    });
+});
+
+//** reset password **/
+const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const token = req.params.token;
+  const { password } = req.body;
+
+  // Verify the token
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  // Find the OTP record based on the hashed token
+  const otpRecord = await prisma.oTPVerification.findFirst({
+    where: { otp: hashedToken },
+  });
+
+  if (!otpRecord) {
+    throw new apiError(httpStatus.BAD_REQUEST, "Invalid or expired token");
+  }
+
+  // Check if the token has expired
+  if (otpRecord.expiresAt < new Date()) {
+    throw new apiError(httpStatus.BAD_REQUEST, "Token has expired");
+  }
+
+  // Hash the new password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Update the user's password
+  await prisma.user.update({
+    where: { id: otpRecord.userId }, // Assuming OTP record has a userId field
+    data: { password: hashedPassword },
+  });
+
+  // Delete the OTP record after a successful password reset
+  await prisma.oTPVerification.delete({
+    where: { id: otpRecord.id }, // Deleting by the OTP record's ID
+  });
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Password reset successfully, token deleted",
+  });
+});
+
 export const authController = {
   userSignUp,
   loginUser,
   verifyLoginOtp,
+  forgotPassword,
+  resetPassword,
 };

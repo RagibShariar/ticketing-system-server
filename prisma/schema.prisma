@@ -12,10 +12,11 @@ model User {
   email           String           @unique
   name            String
   password        String
+  companyName     String
+  designation     String?
   phone           String?
-  address         String?
   avatar          String?
-  role            UserRole
+  role            UserRole         @default(user)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   otpVerification OTPVerification?
@@ -59,8 +60,8 @@ model ServiceRequest {
 }
 
 model RequestType {
-  id   Int    @id @default(autoincrement())
-  type String @unique
+  id   Int             @id @default(autoincrement())
+  type RequestTypeEnum
 
   // One-to-many relationship with ServiceRequest
   serviceRequests ServiceRequest[] // Each request type can have multiple service requests
@@ -76,6 +77,13 @@ enum UserRole {
 
 enum RequestStatus {
   pending
+  in_progress
   fulfilled
   cancelled
+}
+
+enum RequestTypeEnum {
+  incident
+  request
+  change
 }
