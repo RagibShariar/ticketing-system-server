@@ -204,7 +204,8 @@ const verifyLoginOtp = asyncHandler(async (req: Request, res: Response) => {
       email: user.email,
       role: user.role,
       phone: user.phone,
-      address: user.address,
+      companyName: user.companyName,
+      designation: user.designation,
     },
   });
 });
