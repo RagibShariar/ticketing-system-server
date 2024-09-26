@@ -8,6 +8,7 @@ import apiError from "../utils/apiError";
 import apiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
 import { sendEmail } from "../utils/sendEmail";
+import { uploadOnCloudinary } from "../utils/cloudinary";
 
 const prisma = new PrismaClient();
 
@@ -38,16 +39,27 @@ const createServiceRequest = asyncHandler(
 
     // Extract the service request data from the request body
     const { name, email, subject, requestType, message } = req.body;
+    console.log(req.body);
 
     // Find the corresponding request type in the database
-    const foundRequestType = await prisma.requestType.findUnique({
+    const foundRequestType = await prisma.requestType.findFirst({
       where: {
-        type: requestType.toLowerCase(), // Ensure requestType matches the types in the DB
+        type: requestType, // Ensure requestType matches the types in the DB
       },
     });
 
     if (!foundRequestType) {
       throw new apiError(httpStatus.BAD_REQUEST, `Invalid request type`);
+    }
+    // upload image to cloudinary
+    let imageLocalPath: string | undefined;
+    if (req.files && "image" in req.files && Array.isArray(req.files.image)) {
+      imageLocalPath = req.files.image[0].path;
+    }
+
+    let image;
+    if (imageLocalPath) {
+      image = await uploadOnCloudinary(imageLocalPath);
     }
 
     // Create the service request in the database
@@ -57,6 +69,7 @@ const createServiceRequest = asyncHandler(
         email,
         subject,
         message,
+        image: image?.secure_url,
         requestTypeId: foundRequestType.id, // Link to RequestType
         userId: user.id, // Link to the user from the token
       },

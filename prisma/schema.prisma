@@ -45,6 +45,7 @@ model ServiceRequest {
   email     String
   subject   String
   message   String
+  image     String?
   createdAt DateTime      @default(now())
   status    RequestStatus @default(pending)
 

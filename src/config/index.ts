@@ -16,6 +16,9 @@ const _config = {
   smtp_password: process.env.SMTP_PASSWORD,
   support_email: process.env.SUPPORT_EMAIL,
   client_url: process.env.CLIENT_URL,
+  cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinary_api_key: process.env.CLOUDINARY_API_KEY,
+  cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET,
 };
 
 export const config = Object.freeze(_config);
