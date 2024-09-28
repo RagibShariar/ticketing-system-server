@@ -7,8 +7,8 @@ import { USER_ROLE } from "../middlewares/auth";
 import apiError from "../utils/apiError";
 import apiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
-import { sendEmail } from "../utils/sendEmail";
 import { uploadOnCloudinary } from "../utils/cloudinary";
+import { sendEmail } from "../utils/sendEmail";
 
 const prisma = new PrismaClient();
 
@@ -39,7 +39,7 @@ const createServiceRequest = asyncHandler(
 
     // Extract the service request data from the request body
     const { name, email, subject, requestType, message } = req.body;
-    console.log(req.body);
+    // console.log(req.body);
 
     // Find the corresponding request type in the database
     const foundRequestType = await prisma.requestType.findFirst({
@@ -56,6 +56,7 @@ const createServiceRequest = asyncHandler(
     if (req.files && "image" in req.files && Array.isArray(req.files.image)) {
       imageLocalPath = req.files.image[0].path;
     }
+    // console.log(imageLocalPath);
 
     let image;
     if (imageLocalPath) {

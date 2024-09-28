@@ -6,7 +6,7 @@ import auth from "../middlewares/auth";
 const userRouter = Router();
 
 userRouter.patch(
-  "/:id",
+  "/",
   auth(UserRole.user, UserRole.admin, UserRole.super_admin),
   userController.updateUserProfile
 );
