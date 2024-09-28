@@ -234,7 +234,7 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Set expiration to 10 minutes from now
 
   // reset url
-  const resetUrl = `${config.client_url}/reset-password/${hashedToken}`;
+  const resetUrl = `${config.client_url}/reset-password/${resetToken}`;
 
   //  save the token in the database and send it to the user's email
   await prisma.oTPVerification.upsert({
@@ -289,6 +289,7 @@ const resetPassword = asyncHandler(async (req: Request, res: Response) => {
 
   // Verify the token
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+  console.log("hashedToken", hashedToken);
 
   // Find the OTP record based on the hashed token
   const otpRecord = await prisma.oTPVerification.findFirst({
@@ -321,7 +322,7 @@ const resetPassword = asyncHandler(async (req: Request, res: Response) => {
   res.status(httpStatus.OK).json({
     success: true,
     statusCode: httpStatus.OK,
-    message: "Password reset successfully, token deleted",
+    message: "Password reset successfully, Please login.",
   });
 });
 

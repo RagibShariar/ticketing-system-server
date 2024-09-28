@@ -5,6 +5,8 @@ import auth from "../middlewares/auth";
 
 const userRouter = Router();
 
+userRouter.get("/", userController.getUserInfo);
+
 userRouter.patch(
   "/",
   auth(UserRole.user, UserRole.admin, UserRole.super_admin),
