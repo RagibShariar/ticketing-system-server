@@ -143,6 +143,9 @@ const viewServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     where: {
       userId: user.id,
     },
+    orderBy: {
+      createdAt: "asc",
+    },
   });
   apiResponse(
     res,
@@ -184,6 +187,9 @@ const viewAllServiceRequest = asyncHandler(
         requestType: true, // Populate the related RequestType
         user: true, // Populate the related User
       },
+      orderBy: {
+        createdAt: "asc",
+      },
     });
 
     apiResponse(
@@ -198,7 +204,7 @@ const viewAllServiceRequest = asyncHandler(
 // mark service request as fulfilled by admin
 const markServiceRequestAsFulfilled = asyncHandler(
   async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = req.body;
 
     const token = req.headers.authorization?.split(" ")[1] as string;
 
