@@ -143,6 +143,10 @@ const viewServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     where: {
       userId: user.id,
     },
+    include: {
+      requestType: true, // Populate the related RequestType
+      user: true, // Populate the related User
+    },
     orderBy: {
       createdAt: "asc",
     },
