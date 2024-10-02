@@ -11,7 +11,12 @@ const app: Application = express();
 
 app.use(
   cors({
-    origin: ["https://ticketingsystem.labontest.tech", "http://localhost:3000"],
+    origin: [
+      "https://support.solar-ict.com",
+      "http://support.solar-ict.com",
+      "http://localhost:3000",
+      "https://ticketingsystem.labontest.tech",
+    ],
     credentials: true,
   })
 );
@@ -19,7 +24,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  res.send("🎊 Ticketing Server is running, DB postgreSQL...");
+  res.send("🎊 Support Server is running... 🎊");
 });
 
 app.use("/api/auth", authRouter);

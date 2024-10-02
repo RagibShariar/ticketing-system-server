@@ -2,7 +2,7 @@ import cron from "node-cron";
 import prisma from "../shared/prisma";
 
 // Schedule the task to run every hour to check for expired OTPs
-cron.schedule("0 * * * *", async () => {
+cron.schedule("0 0 * * *", async () => {
   console.log("Running cron job to delete expired OTPs...");
 
   const now = new Date();
