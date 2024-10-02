@@ -109,10 +109,10 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
       <div style="margin:30px auto;width:90%;padding:20px 0">
         <div style="border-bottom:1px solid #eee">
         </div>
-        <p style="font-size:1.1em">Hi,</p>
+        <p style="font-size:1.1em">Hi, ${user?.name}</p>
         <p>Use the following OTP to login. OTP is valid for 5 minutes.</p>
         <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;">${otp}</h2>
-        <p style="font-size:0.9em;">Regards,<br />Book My Play</p>
+        <p style="font-size:0.9em;">Regards,<br />Solar-ICT</p>
         <hr style="border:none;border-top:1px solid #eee" />
       </div>
     </div>
@@ -124,7 +124,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     statusCode: 200,
-    message: `OTP sent successfully to your email. ${otp}`,
+    message: `OTP sent successfully to your email. Please check your email.`,
   });
 });
 
@@ -235,6 +235,7 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
 
   // reset url
   const resetUrl = `${config.client_url}/reset-password/${resetToken}`;
+  console.log(resetUrl);
 
   //  save the token in the database and send it to the user's email
   await prisma.oTPVerification.upsert({
@@ -268,7 +269,7 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
         <a href=${resetUrl} target="_blank">Reset Password</a>
         </p>
           <p>This reset password link will be valid only for 10 minutes. </p>
-        
+        <p style="font-size:0.9em;">Regards,<br />Solar-ICT</p>
         <hr style="border:none;border-top:1px solid #eee" />
       </div>
     </body>
