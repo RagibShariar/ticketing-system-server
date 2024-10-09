@@ -24,6 +24,12 @@ serviceRequestRouter.get(
   serviceRequest.viewAllServiceRequest
 );
 
+serviceRequestRouter.get(
+  "/:id",
+  auth(USER_ROLE.user, USER_ROLE.admin),
+  serviceRequest.viewServiceRequestById
+);
+
 serviceRequestRouter.patch(
   "/change-status",
   auth(USER_ROLE.admin),

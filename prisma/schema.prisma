@@ -1,90 +1,124 @@
+// Define the Prisma client generator
 generator client {
   provider = "prisma-client-js"
 }
 
+// Configure the datasource to use PostgreSQL
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id              String           @id @default(uuid())
-  email           String           @unique
-  name            String
-  password        String
-  companyName     String
-  designation     String?
-  phone           String?
-  avatar          String?
-  role            UserRole         @default(user)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  otpVerification OTPVerification?
-
-  // One-to-many relationship with ServiceRequest
-  serviceRequests ServiceRequest[] // A user can have multiple service requests
-
-  @@map("users")
-}
-
-model OTPVerification {
-  id        String   @id @default(uuid())
-  otp       String
-  expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("otp_verifications")
-}
-
-model ServiceRequest {
-  id        Int           @id @default(autoincrement())
-  name      String
-  email     String
-  subject   String
-  message   String
-  image     String?
-  createdAt DateTime      @default(now())
-  status    RequestStatus @default(pending)
-
-  // Foreign key to RequestType
-  requestTypeId Int
-  requestType   RequestType @relation(fields: [requestTypeId], references: [id])
-
-  // Foreign key to User (Many-to-One relation)
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@map("service_requests")
-}
-
-model RequestType {
-  id   Int             @id @default(autoincrement())
-  type RequestTypeEnum
-
-  // One-to-many relationship with ServiceRequest
-  serviceRequests ServiceRequest[] // Each request type can have multiple service requests
-
-  @@map("request_types")
-}
-
+/// Enum representing different roles a user can have
 enum UserRole {
-  super_admin
-  admin
-  user
+  super_admin /// Has all permissions, including managing other admins
+  admin /// Can manage users and service requests
+  user /// Regular user with limited permissions
 }
 
+/// Enum representing the status of a service request
 enum RequestStatus {
-  pending
-  in_progress
-  fulfilled
-  cancelled
+  pending /// The request has been created but not yet processed
+  in_progress /// The request is currently being handled
+  fulfilled /// The request has been successfully completed
+  cancelled /// The request has been cancelled
 }
 
+/// Enum representing the type of service request
 enum RequestTypeEnum {
-  incident
-  request
-  change
+  incident /// An unexpected event causing disruption
+  request /// A standard service request
+  change /// A request to change existing configurations or services
+}
+
+/// Model representing a user in the system
+model User {
+  id              String           @id @default(uuid()) /// Unique identifier for the user
+  email           String           @unique /// User's unique email address
+  name            String /// Full name of the user
+  password        String /// Hashed password for authentication
+  companyName     String /// Name of the company the user belongs to
+  designation     String? /// User's job title or designation
+  phone           String? /// Contact phone number
+  avatar          String? /// URL to the user's avatar image
+  role            UserRole         @default(user) /// Role assigned to the user
+  createdAt       DateTime         @default(now()) /// Timestamp when the user was created
+  updatedAt       DateTime         @updatedAt /// Timestamp when the user was last updated
+  otpVerification OTPVerification? /// One-time password verification details
+
+  /// One-to-many relationship with ServiceRequest
+  serviceRequests ServiceRequest[] /// A user can have multiple service requests
+
+  /// One-to-many relationship with AdditionalInformation
+  additionalInformations AdditionalInformation[] /// A user can add multiple additional information entries
+
+  @@map("users") /// Maps this model to the "users" table in the database
+}
+
+/// Model representing OTP (One-Time Password) verification for a user
+model OTPVerification {
+  id        String   @id @default(uuid()) /// Unique identifier for the OTP verification record
+  otp       String /// The one-time password
+  expiresAt DateTime /// Expiration timestamp for the OTP
+  user      User     @relation(fields: [userId], references: [id]) /// Associated user
+  userId    String   @unique /// Foreign key to the User model
+  createdAt DateTime @default(now()) /// Timestamp when the OTP was created
+  updatedAt DateTime @updatedAt /// Timestamp when the OTP was last updated
+
+  @@map("otp_verifications") /// Maps this model to the "otp_verifications" table
+}
+
+/// Model representing a service request made by a user
+model ServiceRequest {
+  id        Int           @id @default(autoincrement()) /// Unique identifier for the service request
+  name      String /// Name of the requester
+  email     String /// Email of the requester
+  subject   String /// Subject of the service request
+  message   String /// Detailed message describing the request
+  image     String? /// URL to an image related to the request
+  createdAt DateTime      @default(now()) /// Timestamp when the request was created
+  status    RequestStatus @default(pending) /// Current status of the request
+
+  /// Foreign key to RequestType
+  requestTypeId Int /// References the type of the request
+  requestType   RequestType @relation(fields: [requestTypeId], references: [id]) /// Associated request type
+
+  /// Foreign key to User (Many-to-One relation)
+  userId String /// References the user who made the request
+  user   User   @relation(fields: [userId], references: [id]) /// Associated user
+
+  /// One-to-many relationship with AdditionalInformation
+  additionalInformations AdditionalInformation[] /// A service request can have multiple additional information entries
+
+  @@map("service_requests") /// Maps this model to the "service_requests" table
+}
+
+/// Model representing the type of a service request
+model RequestType {
+  id   Int             @id @default(autoincrement()) /// Unique identifier for the request type
+  type RequestTypeEnum /// Type of the request
+
+  /// One-to-many relationship with ServiceRequest
+  serviceRequests ServiceRequest[] /// Each request type can have multiple service requests
+
+  @@map("request_types") /// Maps this model to the "request_types" table
+}
+
+/// Model representing additional information related to a service request
+model AdditionalInformation {
+  id        Int      @id @default(autoincrement()) /// Unique identifier for the additional information
+  message   String /// Content of the additional information (similar to a chat message)
+  createdAt DateTime @default(now()) /// Timestamp when the information was added
+
+  /// Foreign key to User (Many-to-One relation)
+  userId String /// References the user who added the information
+  user   User   @relation(fields: [userId], references: [id]) /// Associated user
+
+  /// Foreign key to ServiceRequest (Many-to-One relation)
+  serviceRequestId Int /// References the related service request
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id]) /// Associated service request
+
+  @@index([userId])
+  @@index([serviceRequestId])
+  @@map("additional_information") /// Maps this model to the "additional_information" table
 }

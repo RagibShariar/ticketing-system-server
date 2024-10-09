@@ -159,9 +159,60 @@ const viewServiceRequest = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+// View service request for individual user
+const viewServiceRequestById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const token = req.headers.authorization?.split(" ")[1] as string;
+    if (!token) {
+      throw new apiError(httpStatus.UNAUTHORIZED, `Unauthorized Access :(`);
+    }
+
+    const serviceRequest = await prisma.serviceRequest.findFirst({
+      where: {
+        id: Number(id),
+      },
+      include: {
+        requestType: true, // Populate the related RequestType
+        user: true, // Populate the related User
+        additionalInformations: true, // Populate the related AdditionalInformation
+      },
+    });
+    apiResponse(
+      res,
+      httpStatus.OK,
+      "Service request retrieved successfully",
+      serviceRequest
+    );
+  }
+);
+
 // View all services request by admin
 const viewAllServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
+    const token = req.headers.authorization?.split(" ")[1] as string;
+
+    if (!token) {
+      throw new apiError(httpStatus.UNAUTHORIZED, `Unauthorized Access`);
+    }
+
+    // Verify token and get user information
+    const decoded = jwt.verify(
+      token,
+      config.jwt_access_secret as string
+    ) as JwtPayload;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: decoded.email,
+      },
+    });
+
+    if (!user || user.role !== USER_ROLE.admin) {
+      throw new apiError(httpStatus.FORBIDDEN, `Access denied`);
+    }
+
     const { email, id, days } = req.query;
 
     // Create a filtering object based on the query params
@@ -171,18 +222,39 @@ const viewAllServiceRequest = asyncHandler(
       filters.email = email as string;
     }
 
+    // if (id) {
+    //   filters.id = parseInt(id as string, 10);
+    // }
     if (id) {
-      filters.id = parseInt(id as string, 10);
+      const parsedId = parseInt(id as string, 10);
+      if (!isNaN(parsedId)) {
+        filters.id = parsedId;
+      } else {
+        throw new apiError(httpStatus.BAD_REQUEST, `Invalid ID format`);
+      }
     }
 
     // If 'days' is provided, filter records based on the number of days ago
-    if (days) {
-      const daysAgo = new Date();
-      daysAgo.setDate(daysAgo.getDate() - parseInt(days as string, 10));
+    // if (days) {
+    //   const daysAgo = new Date();
+    //   daysAgo.setDate(daysAgo.getDate() - parseInt(days as string, 10));
 
-      filters.createdAt = {
-        gte: daysAgo, // greater than or equal to 'days' ago
-      };
+    //   filters.createdAt = {
+    //     gte: daysAgo, // greater than or equal to 'days' ago
+    //   };
+    // }
+    if (days) {
+      const parsedDays = parseInt(days as string, 10);
+      if (!isNaN(parsedDays) && parsedDays >= 0) {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - parsedDays);
+
+        filters.createdAt = {
+          gte: daysAgo, // greater than or equal to 'days' ago
+        };
+      } else {
+        throw new apiError(httpStatus.BAD_REQUEST, `Invalid days parameter`);
+      }
     }
 
     const serviceRequest = await prisma.serviceRequest.findMany({
@@ -190,6 +262,7 @@ const viewAllServiceRequest = asyncHandler(
       include: {
         requestType: true, // Populate the related RequestType
         user: true, // Populate the related User
+        additionalInformations: true, // Populate the related AdditionalInformation
       },
       orderBy: {
         createdAt: "asc",
@@ -254,4 +327,5 @@ export const serviceRequest = {
   viewServiceRequest,
   viewAllServiceRequest,
   markServiceRequestAsFulfilled,
+  viewServiceRequestById,
 };

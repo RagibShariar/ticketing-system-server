@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application } from "express";
 import globalErrorHandler from "./middlewares/globalErrorHandler";
+import addAdditionalInformationRouter from "./routes/additionalInformation.route";
 import authRouter from "./routes/auth.route";
 import serviceRequestRouter from "./routes/serviceRequest.route";
 import userRouter from "./routes/user.route";
@@ -30,6 +31,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/service-request", serviceRequestRouter);
+app.use("/api/additional-information", addAdditionalInformationRouter);
 
 app.use(globalErrorHandler);
 
