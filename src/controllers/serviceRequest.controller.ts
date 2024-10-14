@@ -15,6 +15,9 @@ const prisma = new PrismaClient();
 // Create service request
 const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
+    // Extract the service request data from the request body
+    const { name, email, subject, requestType, message } = req.body;
+
     const token = req.headers.authorization?.split(" ")[1] as string;
 
     if (!token) {
@@ -34,12 +37,22 @@ const createServiceRequest = asyncHandler(
     });
 
     if (!user) {
-      throw new apiError(httpStatus.UNAUTHORIZED, `Invalid token`);
+      throw new apiError(httpStatus.UNAUTHORIZED, `Unauthorized Access`);
     }
 
-    // Extract the service request data from the request body
-    const { name, email, subject, requestType, message } = req.body;
-    // console.log(req.body);
+    // check req.email is valid
+    const isUserExist = await prisma.user.findFirst({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!isUserExist) {
+      throw new apiError(httpStatus.NOT_FOUND, `'${email}' not registered`);
+    }
+
+    // Check if the admin is creating a request on behalf of a user
+    const userId = user.role === "admin" ? isUserExist.id : user.id;
 
     // Find the corresponding request type in the database
     const foundRequestType = await prisma.requestType.findFirst({
@@ -72,7 +85,7 @@ const createServiceRequest = asyncHandler(
         message,
         image: image?.secure_url,
         requestTypeId: foundRequestType.id, // Link to RequestType
-        userId: user.id, // Link to the user from the token
+        userId, // Link to the user from the token
       },
     });
 
@@ -81,7 +94,7 @@ const createServiceRequest = asyncHandler(
       to: config.support_email as string,
       subject: subject,
       html: `
-           <html lang="en" >
+            <html lang="en" >
     <head>
       <meta charset="UTF-8">
     </head>
@@ -94,7 +107,7 @@ const createServiceRequest = asyncHandler(
         <p>Request Type: ${requestType}</p>
         <p>${message}</p>
         
-        <p style="font-size:0.9em;">Regards, <br />
+        <p >Regards, <br />
           ${name} <br />
           Email: ${email} <br />
         </p>

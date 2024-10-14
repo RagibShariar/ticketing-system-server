@@ -7,6 +7,56 @@ import apiError from "../utils/apiError";
 import apiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
 
+// find  user with email
+const findUser = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email query is required" });
+  }
+
+  // Find emails that match the query, assuming a partial match search
+  const users = await prisma.user.findMany({
+    where: {
+      email: {
+        contains: email as string,
+        mode: "insensitive", // Case-insensitive search
+      },
+    },
+    select: {
+      email: true,
+    },
+    take: 5, // Limit suggestions to 5 results
+  });
+
+  const emailSuggestions = users.map((user) => user.email);
+  res.json(emailSuggestions);
+});
+
+// get user details
+const getUserDetails = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: email as string },
+    select: {
+      name: true,
+      companyName: true, // Assuming these fields exist in your user model
+      designation: true,
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  res.json(user);
+});
+
 // get user info
 const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -86,4 +136,6 @@ const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
 export const userController = {
   updateUserProfile,
   getUserInfo,
+  findUser,
+  getUserDetails,
 };

@@ -6,6 +6,8 @@ import auth from "../middlewares/auth";
 const userRouter = Router();
 
 userRouter.get("/", userController.getUserInfo);
+userRouter.get("/suggestions", userController.findUser);
+userRouter.get("/details", userController.getUserDetails);
 
 userRouter.patch(
   "/",

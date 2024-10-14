@@ -7,7 +7,7 @@ const serviceRequestRouter = Router();
 
 serviceRequestRouter.post(
   "/",
-  auth(USER_ROLE.user),
+  auth(USER_ROLE.user, USER_ROLE.admin),
   upload.fields([{ name: "image", maxCount: 1 }]),
   serviceRequest.createServiceRequest
 );

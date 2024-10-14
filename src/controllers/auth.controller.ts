@@ -269,7 +269,7 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
         <a href=${resetUrl} target="_blank">Reset Password</a>
         </p>
           <p>This reset password link will be valid only for 10 minutes. </p>
-        <p style="font-size:0.9em;">Regards,<br />Solar-ICT</p>
+        <p>Regards,<br />Solar-ICT</p>
         <hr style="border:none;border-top:1px solid #eee" />
       </div>
     </body>
