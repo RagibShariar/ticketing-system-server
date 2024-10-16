@@ -294,10 +294,6 @@ const viewAllServiceRequest = asyncHandler(
 // edit service request by user
 const updateServiceRequest = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { images: newImages } = req.body; // Extract new images from the request body
-
-  // console.log(req.body);
-  // console.log(req.params);
 
   const token = req.headers.authorization?.split(" ")[1] as string;
 
@@ -315,10 +311,26 @@ const updateServiceRequest = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Service request not found" });
   }
 
+  // Array to store the URLs of uploaded images
+  let uploadedImageUrls = [];
+
+  // Process multiple image uploads if images are provided
+  if (req.files && Array.isArray(req.files)) {
+    for (const file of req.files) {
+      const imageLocalPath = file.path; // Get the local path of the file
+
+      // Upload the image to Cloudinary and get the URL
+      if (imageLocalPath) {
+        const uploadedImage = await uploadOnCloudinary(imageLocalPath);
+        uploadedImageUrls.push(uploadedImage!.secure_url); // Store the uploaded image URL
+      }
+    }
+  }
+
   // Merge new images with existing images
   const updatedImages = [
-    ...existingServiceRequest.images,
-    ...(newImages || []), // Append new images if any
+    ...(existingServiceRequest.images || []), // Preserve existing images if any
+    ...uploadedImageUrls, // Append the newly uploaded images
   ];
 
   // Update the service request with the updated images array
