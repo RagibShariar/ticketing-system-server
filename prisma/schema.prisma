@@ -75,7 +75,8 @@ model ServiceRequest {
   email     String /// Email of the requester
   subject   String /// Subject of the service request
   message   String /// Detailed message describing the request
-  image     String? /// URL to an image related to the request
+  image     String?
+  images    String[] /// URL to an image related to the request
   createdAt DateTime      @default(now()) /// Timestamp when the request was created
   status    RequestStatus @default(pending) /// Current status of the request
 

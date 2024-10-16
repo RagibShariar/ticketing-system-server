@@ -31,6 +31,13 @@ serviceRequestRouter.get(
 );
 
 serviceRequestRouter.patch(
+  "/:id",
+  auth(USER_ROLE.user, USER_ROLE.admin),
+  upload.fields([{ name: "image", maxCount: 1 }]),
+  serviceRequest.updateServiceRequest
+);
+
+serviceRequestRouter.patch(
   "/change-status",
   auth(USER_ROLE.admin),
   serviceRequest.markServiceRequestAsFulfilled

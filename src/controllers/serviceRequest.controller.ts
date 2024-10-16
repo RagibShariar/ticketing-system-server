@@ -83,7 +83,7 @@ const createServiceRequest = asyncHandler(
         email,
         subject,
         message,
-        image: image?.secure_url,
+        images: image ? [image.secure_url] : [],
         requestTypeId: foundRequestType.id, // Link to RequestType
         userId, // Link to the user from the token
       },
@@ -291,6 +291,52 @@ const viewAllServiceRequest = asyncHandler(
   }
 );
 
+// edit service request by user
+const updateServiceRequest = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { images: newImages } = req.body; // Extract new images from the request body
+
+  // console.log(req.body);
+  // console.log(req.params);
+
+  const token = req.headers.authorization?.split(" ")[1] as string;
+
+  if (!token) {
+    throw new apiError(httpStatus.UNAUTHORIZED, `Unauthorized Access`);
+  }
+
+  // Find the existing service request by ID
+  const existingServiceRequest = await prisma.serviceRequest.findFirst({
+    where: { id: Number(id) }, // Assuming `id` is of type `Int`
+  });
+
+  // If the service request doesn't exist, return an error
+  if (!existingServiceRequest) {
+    return res.status(404).json({ message: "Service request not found" });
+  }
+
+  // Merge new images with existing images
+  const updatedImages = [
+    ...existingServiceRequest.images,
+    ...(newImages || []), // Append new images if any
+  ];
+
+  // Update the service request with the updated images array
+  const updatedServiceRequest = await prisma.serviceRequest.update({
+    where: { id: Number(id) },
+    data: {
+      images: updatedImages, // Set the merged images array
+    },
+  });
+
+  apiResponse(
+    res,
+    httpStatus.OK,
+    "New Image added successfully",
+    updatedServiceRequest
+  );
+});
+
 // mark service request as fulfilled by admin
 const markServiceRequestAsFulfilled = asyncHandler(
   async (req: Request, res: Response) => {
@@ -341,4 +387,5 @@ export const serviceRequest = {
   viewAllServiceRequest,
   markServiceRequestAsFulfilled,
   viewServiceRequestById,
+  updateServiceRequest,
 };
