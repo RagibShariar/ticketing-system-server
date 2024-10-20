@@ -349,7 +349,7 @@ const updateServiceRequest = asyncHandler(async (req, res) => {
   );
 });
 
-// mark service request as fulfilled by admin
+// change Status by admin
 const markServiceRequestAsFulfilled = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.body;

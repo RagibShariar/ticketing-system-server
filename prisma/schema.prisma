@@ -18,10 +18,13 @@ enum UserRole {
 
 /// Enum representing the status of a service request
 enum RequestStatus {
-  pending /// The request has been created but not yet processed
-  in_progress /// The request is currently being handled
-  fulfilled /// The request has been successfully completed
-  cancelled /// The request has been cancelled
+  opened
+  pending
+  in_progress
+  fulfilled
+  completed
+  resolved
+  cancelled
 }
 
 /// Enum representing the type of service request
@@ -78,7 +81,7 @@ model ServiceRequest {
   image     String?
   images    String[] /// URL to an image related to the request
   createdAt DateTime      @default(now()) /// Timestamp when the request was created
-  status    RequestStatus @default(pending) /// Current status of the request
+  status    RequestStatus @default(opened) /// Current status of the request
 
   /// Foreign key to RequestType
   requestTypeId Int /// References the type of the request
