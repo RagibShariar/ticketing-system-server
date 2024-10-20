@@ -6,6 +6,7 @@ import prisma from "../shared/prisma";
 import apiError from "../utils/apiError";
 import apiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
+import { uploadOnCloudinary } from "../utils/cloudinary";
 
 // find  user with email
 const findUser = asyncHandler(async (req: Request, res: Response) => {
@@ -94,7 +95,7 @@ const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
 
 // update user profile
 const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
-  const { name, phone, designation, avatar } = req.body;
+  const { name, phone, designation } = req.body;
 
   const token = req.headers.authorization?.split(" ")[1];
 
@@ -119,9 +120,26 @@ const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
     throw new apiError(httpStatus.NOT_FOUND, "User not found");
   }
 
+  // upload image to cloudinary
+  let imageLocalPath: string | undefined;
+  if (req.files && "avatar" in req.files && Array.isArray(req.files.avatar)) {
+    imageLocalPath = req.files.avatar[0].path;
+  }
+  // console.log(imageLocalPath);
+
+  let avatar;
+  if (imageLocalPath) {
+    avatar = await uploadOnCloudinary(imageLocalPath);
+  }
+
   const user = await prisma.user.update({
     where: { email: isUserExist?.email },
-    data: { name, phone, designation, avatar },
+    data: {
+      name,
+      phone,
+      designation,
+      avatar: avatar ? avatar.secure_url : null,
+    },
   });
 
   apiResponse(res, httpStatus.OK, "User updated successfully", {
