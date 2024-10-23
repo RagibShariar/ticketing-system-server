@@ -20,7 +20,7 @@ const transporter = nodemailer.createTransport({
 
 export const sendEmail = async (options: TEmailOptions) => {
   const emailOptions = {
-    from: config.smtp_mail, // sender address
+    from: "Solar-ICT Support" + " <" + config.smtp_mail + ">", // sender address
     to: options.to, // list of receivers
     subject: options.subject, // Subject line
     // text: `OTP Verification", Your OTP is: ${otp}` // plain text body

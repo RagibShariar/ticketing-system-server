@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { config } from "../config";
 import prisma from "../shared/prisma";
 import apiError from "../utils/apiError";
@@ -39,19 +39,206 @@ const userSignUp = asyncHandler(async (req: Request, res: Response) => {
     data: userData,
   });
 
+  // // create verification token and send email
+  // const token = jwt.sign(
+  //   { email: result.email },
+  //   config.jwt_access_secret as string,
+  //   {
+  //     expiresIn: "1days",
+  //   }
+  // );
+
+  // // save verification token in database
+  // await prisma.oTPVerification.upsert({
+  //   where: { userId: result.id },
+  //   update: {
+  //     otp: token,
+  //     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+  //   },
+  //   create: {
+  //     otp: token,
+  //     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+  //     user: {
+  //       connect: { id: result.id },
+  //     },
+  //   },
+  // });
+
+  // // email verify url
+  // const EmailVerifyUrl = `${config.client_url}/verify-email?token=${token}`;
+
+  // await sendEmail({
+  //   to: result.email,
+  //   subject: "Verify your Email",
+  //   html: `<p><a href=${EmailVerifyUrl}>Click here  to verify your email</a></p>`,
+  // });
+
+  res.status(httpStatus.CREATED).json({
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "User created successfully. Please Login to your account",
+  });
+});
+
+//**  Generate verification token and send email
+const generateVerifyEmailToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    // console.log(req.body);
+    const { email } = req.body;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email: email,
+      },
+    });
+    if (!user) {
+      throw new apiError(httpStatus.NOT_FOUND, "Email not registered");
+    }
+
+    // create verification token and send email
+    const token = jwt.sign(
+      { email: req.body.email },
+      config.jwt_access_secret as string,
+      {
+        expiresIn: "1days",
+      }
+    );
+
+    // save verification token in database
+    await prisma.oTPVerification.upsert({
+      where: { userId: user.id },
+      update: {
+        otp: token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      },
+      create: {
+        otp: token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        user: {
+          connect: { id: user.id },
+        },
+      },
+    });
+
+    // email verify url
+    const EmailVerifyUrl = `${config.client_url}/verify-email?token=${token}`;
+
+    await sendEmail({
+      to: email,
+      subject: "Verify your Email",
+      html: `
+      <html>
+
+<body>
+
+
+<p>Dear ${user.name},</p> <br/>
+<p>To complete your registration and activate your account, please verify your email address.
+
+Simply click the button below to verify your account:</p> <br/>
+
+<p><a href=${EmailVerifyUrl}>Click here  to verify your email</a></p> <br/> 
+
+<p>If the button doesn't work, you can also copy and paste the following link into your browser</p> <br/>
+
+<p>${EmailVerifyUrl}</p> <br/> <br/>
+
+<p>Best Regards,</p>
+<p>Solar-ICT</p>
+</body>
+</html>
+
+      `,
+    });
+
+    apiResponse(
+      res,
+      httpStatus.OK,
+      "Verification token sent to your email. Please verify your email",
+      ""
+    );
+  }
+);
+
+//**  Verify Email **//
+const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { token } = req.query;
+  // console.log(token);
+
+  // Verify the jwt token
+  const decoded = jwt.verify(
+    token as string,
+    config.jwt_access_secret as string
+  );
+
+  if (!decoded) {
+    throw new apiError(httpStatus.UNAUTHORIZED, "Invalid token");
+  }
+  // find the token in database
+  const verifyToken = await prisma.oTPVerification.findFirst({
+    where: {
+      userId: (decoded as JwtPayload).userId,
+    },
+  });
+
+  if (!verifyToken) {
+    throw new apiError(httpStatus.UNAUTHORIZED, "Invalid token");
+  }
+
+  // Check if the token has expired
+  if (verifyToken.expiresAt < new Date()) {
+    throw new apiError(httpStatus.BAD_REQUEST, "Token has expired");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email: (decoded as JwtPayload).email,
+    },
+  });
+  if (!user) {
+    throw new apiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const result = await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      isVerified: true,
+    },
+  });
+
   // send response without password
   const userResponse = {
     ...result,
     password: undefined,
+    id: undefined,
   };
   delete userResponse.password;
+  delete userResponse.id;
 
-  apiResponse(
-    res,
-    httpStatus.CREATED,
-    "Your account has been created successfully. Please log in",
-    userResponse
-  );
+  res.status(httpStatus.OK).json({
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Email verified successfully",
+    data: {
+      name: userResponse.name,
+      email: userResponse.email,
+      role: userResponse.role,
+      phone: userResponse.phone,
+      companyName: userResponse.companyName,
+      designation: userResponse.designation,
+      avatar: userResponse.avatar,
+      isVerified: userResponse.isVerified,
+    },
+  });
+
+  // delete otp from database
+  await prisma.oTPVerification.deleteMany({
+    where: {
+      userId: user.id,
+    },
+  });
 });
 
 //**  Login user **//
@@ -72,6 +259,14 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
   if (!isPasswordCorrect) {
     throw new apiError(httpStatus.UNAUTHORIZED, "Incorrect password");
   }
+
+  // check if user is verified
+  // if (!user.isVerified) {
+  //   throw new apiError(
+  //     httpStatus.UNAUTHORIZED,
+  //     "Please verify your email first"
+  //   );
+  // }
 
   // Generate OTP token and set expiration time (e.g., 10 minutes)
   const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
@@ -197,7 +392,7 @@ const verifyLoginOtp = asyncHandler(async (req: Request, res: Response) => {
   res.status(httpStatus.OK).json({
     success: true,
     statusCode: httpStatus.OK,
-    message: "User logged in successfully",
+    message: "logged in successfully. Please verify your account",
     token: accessToken,
     data: {
       name: user.name,
@@ -207,6 +402,7 @@ const verifyLoginOtp = asyncHandler(async (req: Request, res: Response) => {
       companyName: user.companyName,
       designation: user.designation,
       avatar: user.avatar,
+      isVerified: user.isVerified,
     },
   });
 });
@@ -236,7 +432,7 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
 
   // reset url
   const resetUrl = `${config.client_url}/reset-password/${resetToken}`;
-  console.log(resetUrl);
+  // console.log(resetUrl);
 
   //  save the token in the database and send it to the user's email
   await prisma.oTPVerification.upsert({
@@ -291,7 +487,7 @@ const resetPassword = asyncHandler(async (req: Request, res: Response) => {
 
   // Verify the token
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-  console.log("hashedToken", hashedToken);
+  // console.log("hashedToken", hashedToken);
 
   // Find the OTP record based on the hashed token
   const otpRecord = await prisma.oTPVerification.findFirst({
@@ -330,8 +526,10 @@ const resetPassword = asyncHandler(async (req: Request, res: Response) => {
 
 export const authController = {
   userSignUp,
+  verifyEmail,
   loginUser,
   verifyLoginOtp,
   forgotPassword,
   resetPassword,
+  generateVerifyEmailToken,
 };

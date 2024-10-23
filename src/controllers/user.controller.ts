@@ -90,6 +90,7 @@ const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
     companyName: isUserExist?.companyName,
     designation: isUserExist?.designation,
     avatar: isUserExist?.avatar,
+    isVerified: isUserExist?.isVerified,
   });
 });
 
