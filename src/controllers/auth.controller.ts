@@ -39,44 +39,70 @@ const userSignUp = asyncHandler(async (req: Request, res: Response) => {
     data: userData,
   });
 
-  // // create verification token and send email
-  // const token = jwt.sign(
-  //   { email: result.email },
-  //   config.jwt_access_secret as string,
-  //   {
-  //     expiresIn: "1days",
-  //   }
-  // );
+  // create verification token and send email
+  const token = jwt.sign(
+    { email: result.email },
+    config.jwt_access_secret as string,
+    {
+      expiresIn: "1days",
+    }
+  );
 
-  // // save verification token in database
-  // await prisma.oTPVerification.upsert({
-  //   where: { userId: result.id },
-  //   update: {
-  //     otp: token,
-  //     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-  //   },
-  //   create: {
-  //     otp: token,
-  //     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-  //     user: {
-  //       connect: { id: result.id },
-  //     },
-  //   },
-  // });
+  // save verification token in database
+  await prisma.oTPVerification.upsert({
+    where: { userId: result.id },
+    update: {
+      otp: token,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    },
+    create: {
+      otp: token,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      user: {
+        connect: { id: result.id },
+      },
+    },
+  });
 
-  // // email verify url
-  // const EmailVerifyUrl = `${config.client_url}/verify-email?token=${token}`;
+  // email verify url
+  const EmailVerifyUrl = `${config.client_url}/verify-email?token=${token}`;
 
-  // await sendEmail({
-  //   to: result.email,
-  //   subject: "Verify your Email",
-  //   html: `<p><a href=${EmailVerifyUrl}>Click here  to verify your email</a></p>`,
-  // });
+  await sendEmail({
+    to: result.email,
+    subject: "Verify your Email",
+    html: `
+    <html>
+
+<body>
+
+
+<p>Dear ${result.name},</p> <br/>
+<p>To complete your registration and activate your account, please verify your email address.
+
+Simply click the button below to verify your account:</p> <br/>
+
+<p><a href=${EmailVerifyUrl}>Click here  to verify your email</a></p> <br/> 
+
+<p>If the button doesn't work, you can also copy and paste the following link into your browser</p> <br/>
+
+<p>${EmailVerifyUrl}</p> <br/> <br/>
+
+<p>Best Regards,</p>
+<p>Solar-ICT</p>
+</body>
+</html>
+
+    `,
+  });
 
   res.status(httpStatus.CREATED).json({
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "User created successfully. Please Login to your account",
+    message: "User created successfully. Please verify your account",
+    data: {
+      name: result.name,
+      email: result.email,
+    },
   });
 });
 
@@ -93,6 +119,10 @@ const generateVerifyEmailToken = asyncHandler(
     });
     if (!user) {
       throw new apiError(httpStatus.NOT_FOUND, "Email not registered");
+    }
+
+    if (user.isVerified) {
+      throw new apiError(httpStatus.BAD_REQUEST, "Email already verified");
     }
 
     // create verification token and send email
@@ -261,12 +291,9 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // check if user is verified
-  // if (!user.isVerified) {
-  //   throw new apiError(
-  //     httpStatus.UNAUTHORIZED,
-  //     "Please verify your email first"
-  //   );
-  // }
+  if (!user.isVerified) {
+    throw new apiError(httpStatus.FORBIDDEN, "Please verify your email first");
+  }
 
   // Generate OTP token and set expiration time (e.g., 10 minutes)
   const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
