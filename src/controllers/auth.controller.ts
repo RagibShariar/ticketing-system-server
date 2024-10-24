@@ -193,7 +193,9 @@ Simply click the button below to verify your account:</p> <br/>
 //**  Verify Email **//
 const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   const { token } = req.query;
-  // console.log(token);
+  if (!token) {
+    throw new apiError(httpStatus.BAD_REQUEST, "Invalid token");
+  }
 
   // Verify the jwt token
   const decoded = jwt.verify(
@@ -201,9 +203,6 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
     config.jwt_access_secret as string
   );
 
-  if (!decoded) {
-    throw new apiError(httpStatus.UNAUTHORIZED, "Invalid token");
-  }
   // find the token in database
   const verifyToken = await prisma.oTPVerification.findFirst({
     where: {
@@ -212,11 +211,18 @@ const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!verifyToken) {
+    throw new apiError(
+      httpStatus.NOT_FOUND,
+      "Invalid token. Please login again"
+    );
+  }
+
+  if (token !== verifyToken?.otp) {
     throw new apiError(httpStatus.UNAUTHORIZED, "Invalid token");
   }
 
   // Check if the token has expired
-  if (verifyToken.expiresAt < new Date()) {
+  if (verifyToken!.expiresAt < new Date()) {
     throw new apiError(httpStatus.BAD_REQUEST, "Token has expired");
   }
 
