@@ -55,6 +55,7 @@ model User {
 
   /// One-to-many relationship with AdditionalInformation
   additionalInformations AdditionalInformation[] /// A user can add multiple additional information entries
+  BookingAppointment     BookingAppointment[]
 
   @@map("users") /// Maps this model to the "users" table in the database
 }
@@ -93,7 +94,8 @@ model ServiceRequest {
   user   User   @relation(fields: [userId], references: [id]) /// Associated user
 
   /// One-to-many relationship with AdditionalInformation
-  additionalInformations AdditionalInformation[] /// A service request can have multiple additional information entries
+  additionalInformations AdditionalInformation[]
+  BookingAppointment     BookingAppointment[]
 
   @@map("service_requests") /// Maps this model to the "service_requests" table
 }
@@ -126,4 +128,19 @@ model AdditionalInformation {
   @@index([userId])
   @@index([serviceRequestId])
   @@map("additional_information") /// Maps this model to the "additional_information" table
+}
+
+model BookingAppointment {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @default(now())
+  startTime DateTime
+  endTime   DateTime
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  serviceRequestId Int
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id])
+
+  @@map("booking_appointments")
 }

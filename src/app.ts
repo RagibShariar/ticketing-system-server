@@ -4,6 +4,7 @@ import express, { Application } from "express";
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import addAdditionalInformationRouter from "./routes/additionalInformation.route";
 import authRouter from "./routes/auth.route";
+import bookingRouter from "./routes/booking.route";
 import serviceRequestRouter from "./routes/serviceRequest.route";
 import userRouter from "./routes/user.route";
 import "./utils/deleteExpiredOTPs";
@@ -32,6 +33,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/service-request", serviceRequestRouter);
 app.use("/api/additional-information", addAdditionalInformationRouter);
+app.use("/api/booking", bookingRouter);
 
 app.use(globalErrorHandler);
 
