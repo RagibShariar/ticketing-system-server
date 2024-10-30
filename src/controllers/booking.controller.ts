@@ -8,26 +8,11 @@ import prisma from "../shared/prisma";
 import apiError from "../utils/apiError";
 import apiResponse from "../utils/apiResponse";
 import asyncHandler from "../utils/asyncHandler";
-
-interface DecodedToken {
-  id: number;
-  email: string;
-}
-
-// Middleware for token validation
-const verifyToken = (token: string) => {
-  try {
-    return jwt.verify(token, process.env.JWT_SECRET!);
-  } catch (error) {
-    throw new Error("Invalid or expired token");
-  }
-};
+import { sendEmail } from "../utils/sendEmail";
 
 // create a booking by user only
 const createBooking = asyncHandler(async (req: Request, res: Response) => {
-  // const { serviceRequestId } = req.params;
   const { date, startTime, endTime, serviceRequestId } = req.body;
-
   const token = req.headers.authorization?.split(" ")[1];
 
   // 1. Check if token is present
@@ -107,6 +92,67 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
       userId: user.id,
       serviceRequestId: parseInt(serviceRequestId, 10),
     },
+  });
+
+  //7. send email to notification to user and admin
+  await sendEmail({
+    to: user.email,
+    subject: "Appointment Confirmation",
+    html: `
+    <html lang="en" >
+    <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+      <p>Hi ${user?.name},</p>
+      <p>You have successfully booked an appointment slot for "${serviceRequest.subject}" at ${booking.date} from ${booking.startTime} to ${booking.endTime}</p>
+      <p>Best Regards,</p>
+      <p>Solar-ICT</p>
+    </body>
+    </html>
+    `,
+  });
+  await sendEmail({
+    to: config.support_email as string,
+    subject: "Appointment Confirmation",
+    html: `
+    <html lang="en" >
+    <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+      <p>${user?.name} has booked an appointment slot for "${
+      serviceRequest.subject
+    }" at ${format(booking.date, "yyyy-MM-dd")} from ${format(
+      booking.startTime,
+      "HH:mm"
+    )} to ${format(booking.endTime, "HH:mm")}</p>
+
+      <div>
+      <p>Appointment Details:</p>
+      <ul>
+        <li>Ticket id: ${serviceRequest.id}</li>
+        <li>Subject: ${serviceRequest.subject}</li>
+        <li>Date: ${format(booking.date, "yyyy-MM-dd")}</li>
+        <li>Start Time: ${format(booking.startTime, "HH:mm")}</li>
+        <li>End Time: ${format(booking.endTime, "HH:mm")}</li>
+      </ul>
+      <p>User Details:</p>
+      <ul>
+        <li>Name: ${user?.name}</li>
+        <li>Email: ${user?.email}</li>
+      </ul>
+
+      </div>
+      <p>Best Regards,</p>
+      <p>Solar-ICT</p>
+    </body>
+    </html>
+    `,
   });
 
   apiResponse(res, httpStatus.CREATED, "Booking created successfully", booking);
