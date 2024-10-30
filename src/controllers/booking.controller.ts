@@ -107,7 +107,33 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
     </head>
     <body>
       <p>Hi ${user?.name},</p>
-      <p>You have successfully booked an appointment slot for "${serviceRequest.subject}" at ${booking.date} from ${booking.startTime} to ${booking.endTime}</p>
+      <br>
+      <p>You have successfully booked an appointment slot for "${
+        serviceRequest.subject
+      }" at ${format(booking.date, "yyyy-MM-dd")} from ${format(
+      booking.startTime,
+      "HH:mm"
+    )} to ${format(booking.endTime, "HH:mm")}</p>
+    <br>
+    <div>
+      <p>Appointment Details:</p>
+      <ul>
+        <li>Ticket id: ${serviceRequest.id}</li>
+        <li>Subject: ${serviceRequest.subject}</li>
+        <li>Date: ${format(booking.date, "yyyy-MM-dd")}</li>
+        <li>Time: ${format(booking.startTime, "HH:mm")} - ${format(
+      booking.endTime,
+      "HH:mm"
+    )}</li>
+      </ul>
+      <p>User Details:</p>
+      <ul>
+        <li>Name: ${user?.name}</li>
+        <li>Email: ${user?.email}</li>
+      </ul>
+
+      </div>
+    <br>
       <p>Best Regards,</p>
       <p>Solar-ICT</p>
     </body>
@@ -116,7 +142,7 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
   });
   await sendEmail({
     to: config.support_email as string,
-    subject: "Appointment Confirmation",
+    subject: `Appointment Confirmation for #${serviceRequest.id}`,
     html: `
     <html lang="en" >
     <head>
@@ -138,8 +164,10 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
         <li>Ticket id: ${serviceRequest.id}</li>
         <li>Subject: ${serviceRequest.subject}</li>
         <li>Date: ${format(booking.date, "yyyy-MM-dd")}</li>
-        <li>Start Time: ${format(booking.startTime, "HH:mm")}</li>
-        <li>End Time: ${format(booking.endTime, "HH:mm")}</li>
+        <li>Time: ${format(booking.startTime, "HH:mm")} - ${format(
+      booking.endTime,
+      "HH:mm"
+    )}</li>
       </ul>
       <p>User Details:</p>
       <ul>
