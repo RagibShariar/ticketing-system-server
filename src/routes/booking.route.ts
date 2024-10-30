@@ -11,8 +11,10 @@ bookingRouter.post(
   bookingController.createBooking
 );
 
+bookingRouter.get("/", auth(UserRole.admin), bookingController.getAllBookings);
+
 bookingRouter.get(
-  "/",
+  "/:serviceRequestId",
   auth(UserRole.user, UserRole.admin),
   bookingController.getBookings
 );

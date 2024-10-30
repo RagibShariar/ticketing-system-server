@@ -115,6 +115,7 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
 //**  Get bookings for a specific service request
 const getBookings = asyncHandler(async (req: Request, res: Response) => {
   const { serviceRequestId } = req.params;
+  // console.log({ serviceRequestId });
   const token = req.headers.authorization?.split(" ")[1];
 
   // 1. Check if token is present
@@ -163,6 +164,44 @@ const getBookings = asyncHandler(async (req: Request, res: Response) => {
   apiResponse(res, httpStatus.OK, "Bookings retrieved successfully", bookings);
 });
 
+//** get all bookings */
+const getAllBookings = asyncHandler(async (req: Request, res: Response) => {
+  const token = req.headers.authorization?.split(" ")[1];
+
+  // 1. Check if token is present
+  if (!token) {
+    throw new apiError(
+      httpStatus.UNAUTHORIZED,
+      "Authorization token is required"
+    );
+  }
+
+  // 2. Verify token
+
+  const decoded = jwt.verify(token, config.jwt_access_secret!) as JwtPayload;
+
+  // find user by email
+  const user = await prisma.user.findUnique({
+    where: {
+      email: decoded.email,
+    },
+  });
+
+  //4. check role
+  if (user?.role !== USER_ROLE.admin) {
+    throw new apiError(
+      httpStatus.UNAUTHORIZED,
+      "You are not authorized to perform this action"
+    );
+  }
+
+  //5. get all bookings
+  const bookings = await prisma.bookingAppointment.findMany({
+    include: { user: true, serviceRequest: true },
+  });
+  apiResponse(res, httpStatus.OK, "Bookings retrieved successfully", bookings);
+});
+
 // ** check available time slots
 /**
  * Generate 30-minute time slots between 8:00 and 17:30 for a given date.
@@ -173,7 +212,7 @@ const generateTimeSlots = (
   date: Date
 ): { startTime: string; endTime: string }[] => {
   const startTime = setHours(setMinutes(date, 0), 8); // Start at 8:00 AM
-  const endTime = setHours(setMinutes(date, 30), 17); // End at 5:30 PM
+  const endTime = setHours(setMinutes(date, 0), 17); // End at 5:30 PM
 
   const slots: { startTime: string; endTime: string }[] = [];
   let currentTime = startTime;
@@ -201,6 +240,8 @@ const generateTimeSlots = (
 const bookingAvailability = asyncHandler(
   async (req: Request, res: Response) => {
     const { serviceRequestId, date } = req.body;
+    // console.log(req.body);
+    // console.log({ serviceRequestId, date });
 
     const bookingDate = new Date(date);
     const allSlots = generateTimeSlots(bookingDate);
@@ -208,7 +249,7 @@ const bookingAvailability = asyncHandler(
     // Fetch booked slots for the specified service request and date
     const bookedSlots = await prisma.bookingAppointment.findMany({
       where: {
-        serviceRequestId: parseInt(serviceRequestId, 10),
+        // serviceRequestId: parseInt(serviceRequestId, 10),
         // Adjust the date check to match just the day
         startTime: {
           gte: new Date(bookingDate.setHours(0, 0, 0, 0)), // Start of the day
@@ -260,4 +301,5 @@ export const bookingController = {
   createBooking,
   getBookings,
   bookingAvailability,
+  getAllBookings,
 };
