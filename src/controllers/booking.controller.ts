@@ -142,7 +142,7 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
   });
   await sendEmail({
     to: config.support_email as string,
-    subject: `Appointment Confirmation for #${serviceRequest.id}`,
+    subject: `Appointment Confirmation for Ticket#${serviceRequest.id}`,
     html: `
     <html lang="en" >
     <head>
