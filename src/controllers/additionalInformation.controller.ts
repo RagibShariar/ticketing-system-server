@@ -39,17 +39,6 @@ const addAdditionalInformation = asyncHandler(
       );
     }
 
-    // // Check if the service request exists
-    // const serviceRequest = await prisma.serviceRequest.findFirst({
-    //   where: {
-    //     id: serviceRequestId,
-    //   },
-    // });
-
-    // if (!serviceRequest) {
-    //   throw new apiError(httpStatus.NOT_FOUND, "Service Request not found.");
-    // }
-
     // Create the additional information record
     const additionalInformation = await prisma.additionalInformation.create({
       data: {
